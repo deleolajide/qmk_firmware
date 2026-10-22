@@ -95,6 +95,10 @@ void raw_hid_receive_user(uint8_t *data, uint8_t length) {
 
 // 2. Continuous real-time frame painter hook
 bool rgb_matrix_indicators_user(void) {
+    // CRUCIAL: Force the QMK driver engine to run rendering passes for custom layout arrays
+    // This punches through standard "Backlight Off" limitations!
+    rgb_matrix_set_flags(LED_FLAG_ALL);
+
     for (uint8_t i = 0; i < 115; i++) {
         // Intercept any matrix index that contains custom RAM colors
         if (target_r[i] > 0 || target_g[i] > 0 || target_b[i] > 0) {
