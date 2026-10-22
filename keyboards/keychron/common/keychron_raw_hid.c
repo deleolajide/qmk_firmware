@@ -271,7 +271,10 @@ bool kc_raw_hid_rx(uint8_t src, uint8_t *data, uint8_t length) {
     return true;
 }
 
-// 1. Declare our global workspace array buffers right here so this file can see them
+
+#ifdef RAW_ENABLE
+
+// 1. Declare global workspace arrays mapped from our keymap layout workspace
 extern uint8_t target_r[115];
 extern uint8_t target_g[115];
 extern uint8_t target_b[115];
@@ -279,7 +282,7 @@ extern uint8_t target_b[115];
 #    if defined(VIA_ENABLE)
 bool via_command_kb(uint8_t src, uint8_t *data, uint8_t length) {
     // ENFORCED PROTOCOL STRUCTURE:
-    // If Byte 0 is 0xFF and Byte 1 is 0x31, parse it as our custom LED injection!
+    // Check for our custom bypass signature (0xFF 0x31)
     if (length >= 6 && data[0] == 0xFF && data[1] == 0x31) {
         uint8_t led_index = data[2];
         uint8_t r         = data[3];
@@ -291,10 +294,8 @@ bool via_command_kb(uint8_t src, uint8_t *data, uint8_t length) {
             target_g[led_index] = g;
             target_b[led_index] = b;
         }
-        return true; // Return true to tell QMK we handled this packet!
+        return true; // Tells QMK we handled the packet successfully
     }
-
-    // If it's not our custom LED packet, let Keychron handle it normally (VIA works!)
     return kc_raw_hid_rx(src, data, length);
 }
 
@@ -321,3 +322,4 @@ void raw_hid_receive(uint8_t src, uint8_t *data, uint8_t length) {
 }
 #    endif
 
+#endif // Matches line 44 RAW_ENABLE block tracking check
