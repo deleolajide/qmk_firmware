@@ -68,28 +68,39 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 };
 #endif
 
-#if defined(RAW_ENABLE)
+// 1. Create a persistent variable array in RAM to mirror the layout slots (0 to 114)
+// This serves as our static workspace buffer
+uint8_t target_r[115] = {0};
+uint8_t target_g[115] = {0};
+uint8_t target_b[115] = {0};
+
+#ifdef RAW_ENABLE
 void raw_hid_receive_user(uint8_t *data, uint8_t length) {
-    // Data packet structure: data[0] = LED ID, data[1] = R, data[2] = G, data[3] = B
     uint8_t led_index = data[0];
     uint8_t r         = data[1];
     uint8_t g         = data[2];
     uint8_t b         = data[3];
 
-    // Force QMK to bypass standard animation logic processing for this specific update frame
-    // This blocks the default rainbow/wave effect from overwriting your custom colors instantly.
-    rgb_matrix_set_flags(LED_FLAG_ALL); 
-
+    // Instead of forcing the LED registers immediately, save the state to our RAM array
     if (led_index < 115) { 
-        // Paint directly into volatile buffer RAM
-        rgb_matrix_set_color(led_index, r, g, b);
+        target_r[led_index] = r;
+        target_g[led_index] = g;
+        target_b[led_index] = b;
     }
-    
-    // Optional Bypasser: Force a synchronized physical frame draw right now
-    // ensures the hardware registers push out the electrical shift register signals instantly.
-    // (Uncomment the line below if you still notice a delay after flashing)
-    // rgb_matrix_update_pwm_buffers();
 }
 #endif
+
+// 2. This hook runs at the end of EVERY frame drawing cycle. 
+// It pushes the color values from our custom RAM array safely onto the physical shift registers.
+bool rgb_matrix_indicators_user(void) {
+    for (uint8_t i = 0; i < 115; i++) {
+        // If any value in our custom RAM channel contains data, force override the key slot
+        if (target_r[i] > 0 || target_g[i] > 0 || target_b[i] > 0) {
+            rgb_matrix_set_color(i, target_r[i], target_g[i], target_b[i]);
+        }
+    }
+    return true;
+}
+
 
 
