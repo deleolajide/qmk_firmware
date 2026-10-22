@@ -271,8 +271,30 @@ bool kc_raw_hid_rx(uint8_t src, uint8_t *data, uint8_t length) {
     return true;
 }
 
+// 1. Declare our global workspace array buffers right here so this file can see them
+extern uint8_t target_r[115];
+extern uint8_t target_g[115];
+extern uint8_t target_b[115];
+
 #    if defined(VIA_ENABLE)
 bool via_command_kb(uint8_t src, uint8_t *data, uint8_t length) {
+    // ENFORCED PROTOCOL STRUCTURE:
+    // If Byte 0 is 0xFF and Byte 1 is 0x31, parse it as our custom LED injection!
+    if (length >= 6 && data[0] == 0xFF && data[1] == 0x31) {
+        uint8_t led_index = data[2];
+        uint8_t r         = data[3];
+        uint8_t g         = data[4];
+        uint8_t b         = data[5];
+
+        if (led_index < 115) {
+            target_r[led_index] = r;
+            target_g[led_index] = g;
+            target_b[led_index] = b;
+        }
+        return true; // Return true to tell QMK we handled this packet!
+    }
+
+    // If it's not our custom LED packet, let Keychron handle it normally (VIA works!)
     return kc_raw_hid_rx(src, data, length);
 }
 
@@ -282,7 +304,20 @@ void via_raw_hid_send(uint8_t src, uint8_t *data, uint8_t len) {
 }
 #    else
 void raw_hid_receive(uint8_t src, uint8_t *data, uint8_t length) {
+    if (length >= 6 && data[0] == 0xFF && data[1] == 0x31) {
+        uint8_t led_index = data[2];
+        uint8_t r         = data[3];
+        uint8_t g         = data[4];
+        uint8_t b         = data[5];
+
+        if (led_index < 115) {
+            target_r[led_index] = r;
+            target_g[led_index] = g;
+            target_b[led_index] = b;
+        }
+        return;
+    }
     kc_raw_hid_rx(src, data, length);
 }
 #    endif
-#endif
+
