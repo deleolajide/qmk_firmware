@@ -67,3 +67,19 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [WIN_FN]   = {ENCODER_CCW_CW(RM_VALD, RM_VALU) }
 };
 #endif
+
+#if defined(RAW_ENABLE)
+void raw_hid_receive(uint8_t *data, uint8_t length) {
+    // Data packet structure: [0] = LED ID, [1] = R, [2] = G, [3] = B
+    uint8_t led_index = data[0];
+    uint8_t r         = data[1];
+    uint8_t g         = data[2];
+    uint8_t b         = data[3];
+
+    // Direct RAM override - zero flash wear!
+    if (led_index < 115) { 
+        rgb_matrix_set_color(led_index, r, g, b);
+    }
+}
+#endif
+
