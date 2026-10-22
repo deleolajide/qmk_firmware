@@ -69,7 +69,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 #endif
 
 #if defined(RAW_ENABLE)
-void raw_hid_receive(uint8_t *data, uint8_t length) {
+void raw_hid_receive_user(uint8_t *data, uint8_t length) {
     // Data packet structure: [0] = LED ID, [1] = R, [2] = G, [3] = B
     uint8_t led_index = data[0];
     uint8_t r         = data[1];
