@@ -271,9 +271,6 @@ bool kc_raw_hid_rx(uint8_t src, uint8_t *data, uint8_t length) {
     return true;
 }
 
-
-#ifdef RAW_ENABLE
-
 // 1. Declare global workspace arrays mapped from our keymap layout workspace
 extern uint8_t target_r[115];
 extern uint8_t target_g[115];
