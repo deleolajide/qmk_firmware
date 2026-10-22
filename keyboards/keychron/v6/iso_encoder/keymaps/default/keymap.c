@@ -68,41 +68,37 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 };
 #endif
 
-// Build an explicit buffer array mapping layout grids natively
-uint8_t target_r[MATRIX_ROWS][MATRIX_COLS] = {0};
-uint8_t target_g[MATRIX_ROWS][MATRIX_COLS] = {0};
-uint8_t target_b[MATRIX_ROWS][MATRIX_COLS] = {0};
+// 1. Establish linear tracking workspace arrays (0 to 114) in RAM
+uint8_t target_r[115] = {0};
+uint8_t target_g[115] = {0};
+uint8_t target_b[115] = {0};
 
 #ifdef RAW_ENABLE
 void raw_hid_receive_user(uint8_t *data, uint8_t length) {
-    // New Packet Architecture:
-    // data[0] -> Matrix Row coordinate (0 to 5)
-    // data[1] -> Matrix Column coordinate (0 to 20)
-    // data[2] -> Red value (0-255)
-    // data[3] -> Green value (0-255)
-    // data[4] -> Blue value (0-255)
-    uint8_t row = data[0];
-    uint8_t col = data[1];
-    uint8_t r   = data[2];
-    uint8_t g   = data[3];
-    uint8_t b   = data[4];
+    // Packet Structure (Matches Node.js):
+    // data[0] -> Linear LED Index ID (0 to 114)
+    // data[1] -> Red Value (0-255)
+    // data[2] -> Green Value (0-255)
+    // data[3] -> Blue Value (0-255)
+    uint8_t led_index = data[0];
+    uint8_t r         = data[1];
+    uint8_t g         = data[2];
+    uint8_t b         = data[3];
 
-    if (row < MATRIX_ROWS && col < MATRIX_COLS) {
-        target_r[row][col] = r;
-        target_g[row][col] = g;
-        target_b[row][col] = b;
+    if (led_index < 115) { 
+        target_r[led_index] = r;
+        target_g[led_index] = g;
+        target_b[led_index] = b;
     }
 }
 #endif
 
-// The master frame paint hook processing layout slots
+// 2. Continuous real-time frame painter hook
 bool rgb_matrix_indicators_user(void) {
-    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-        for (uint8_t c = 0; c < MATRIX_COLS; c++) {
-            if (target_r[r][c] > 0 || target_g[r][c] > 0 || target_b[r][c] > 0) {
-                // Safely update physical layout slots using hardware indicators
-                rgb_matrix_set_color_by_index(g_lookup_table[r][c], target_r[r][c], target_g[r][c], target_b[r][c]);
-            }
+    for (uint8_t i = 0; i < 115; i++) {
+        // Intercept any matrix index that contains custom RAM colors
+        if (target_r[i] > 0 || target_g[i] > 0 || target_b[i] > 0) {
+            rgb_matrix_set_color(i, target_r[i], target_g[i], target_b[i]);
         }
     }
     return true;
