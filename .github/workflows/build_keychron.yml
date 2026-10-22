@@ -1,0 +1,31 @@
+name: Build Keychron V6 Firmware
+
+on:
+  workflow_dispatch: # Allows you to manually trigger the build with a button click
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install QMK CLI Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-setuptools python3-wheel git
+        python3 -m pip install --user qmk
+
+    - name: Compile Keychron V6 Binary
+      run: |
+        export PATH=$PATH:$HOME/.local/bin
+        qmk setup -y
+        qmk compile -kb keychron/v6/iso/encoder -km default
+
+    - name: Upload Firmware Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: keychron_v6_iso_encoder_firmware
+        path: ./*.bin
