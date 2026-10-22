@@ -70,16 +70,26 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 
 #if defined(RAW_ENABLE)
 void raw_hid_receive_user(uint8_t *data, uint8_t length) {
-    // Data packet structure: [0] = LED ID, [1] = R, [2] = G, [3] = B
+    // Data packet structure: data[0] = LED ID, data[1] = R, data[2] = G, data[3] = B
     uint8_t led_index = data[0];
     uint8_t r         = data[1];
     uint8_t g         = data[2];
     uint8_t b         = data[3];
 
-    // Direct RAM override - zero flash wear!
+    // Force QMK to bypass standard animation logic processing for this specific update frame
+    // This blocks the default rainbow/wave effect from overwriting your custom colors instantly.
+    rgb_matrix_set_flags(LED_FLAG_ALL); 
+
     if (led_index < 115) { 
+        // Paint directly into volatile buffer RAM
         rgb_matrix_set_color(led_index, r, g, b);
     }
+    
+    // Optional Bypasser: Force a synchronized physical frame draw right now
+    // ensures the hardware registers push out the electrical shift register signals instantly.
+    // (Uncomment the line below if you still notice a delay after flashing)
+    // rgb_matrix_update_pwm_buffers();
 }
 #endif
+
 
